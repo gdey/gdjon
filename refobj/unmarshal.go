@@ -3,7 +3,6 @@ package refobj
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 )
 
 // unmarshal will attempt to determine the type of unmarhsalling that need to occure.
@@ -14,8 +13,6 @@ func unmarshal[T any](data []byte, final *T, matched func(m string, objIsString 
 		str string
 	)
 	_, objIsString := any(obj).(string)
-	log.Printf("data: %s", data)
-	log.Printf("objIsString: %v\n", objIsString)
 
 	err = json.Unmarshal(data, &str)
 	if err != nil {
@@ -31,7 +28,6 @@ func unmarshal[T any](data []byte, final *T, matched func(m string, objIsString 
 	// or if ObjeIsString is true then it's value
 	err = matched(str, objIsString)
 	if err != nil && objIsString {
-		log.Printf("string data: %s, %v", data, final)
 		return true, json.Unmarshal(data, final)
 	}
 	return false, err
