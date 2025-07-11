@@ -1,6 +1,7 @@
 package refobj
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -15,6 +16,9 @@ type object[T any] struct {
 	path     jp.Expr
 	hydrated *atomic.Bool
 	obj      *T
+
+	// MarshalUnhydrated is set to true, when marshaling the datastructure it will return these values as string set to json paths, if that is what it was initially.
+	MarshalUnhydrated bool
 }
 
 var jsonPathRegex = regexp.MustCompile(`^\${path:([^}]+)}$`)
@@ -46,6 +50,19 @@ func (obj *object[T]) UnmarshalJSON(data []byte) error {
 	}
 	obj.hydrated.Store(hydrated)
 	return nil
+}
+
+func (obj *object[T]) MarshalJSON() ([]byte, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	if obj.MarshalUnhydrated && obj.path != nil {
+		// need to strip out `$.`
+		path := obj.path.String()
+
+		return []byte(`${path:` + path[2:] + `}`), nil
+	}
+	return json.Marshal(obj.obj)
 }
 
 func (obj *object[T]) Hydrate(data any) error {
