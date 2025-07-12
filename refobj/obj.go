@@ -3,7 +3,6 @@ package refobj
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"regexp"
 	"sync/atomic"
 
@@ -77,12 +76,32 @@ func (obj *object[T]) Hydrate(data any) error {
 
 	results := obj.path.Get(data)
 	if len(results) == 0 {
-		return os.ErrNotExist
+		return fmt.Errorf("not found")
+	}
+
+	item := results[0]
+	if a, ok := item.(Hydrator); ok {
+		// Make sure to hydrate sub items
+		a.Hydrate(data)
+	}
+
+	// if obj.obj is json.Rawmessage we need to deal with it differently.
+	if _, ok := any(obj.obj).(*json.RawMessage); ok {
+		data, err := json.Marshal(item)
+		if err != nil {
+			return fmt.Errorf("failed to marshal for raw message: %w", err)
+		}
+		err = json.Unmarshal(data, obj.obj)
+		if err != nil {
+			return err
+		}
+		obj.hydrated.Store(true)
+		return nil
 	}
 
 	// Generally expecting only one object
 	// TODO(gdey): work with more then one result, where T is []U so, we convert []any to []U.
-	val, ok := results[0].(T)
+	val, ok := item.(T)
 	if !ok {
 		return fmt.Errorf("unexpected object type: expected %T got %T", obj.obj, results[0])
 	}

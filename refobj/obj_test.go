@@ -1,6 +1,7 @@
 package refobj_test
 
 import (
+	"encoding/json"
 	"log"
 	"testing"
 
@@ -15,9 +16,9 @@ func init() {
 func TestObjectUnmarshalJSON(t *testing.T) {
 
 	type AuthStruct struct {
-		Id   string `json:"id"`
-		Name string `json:"name"`
-		Pass string `json:"pass"`
+		Id   string             `json:"id"`
+		Name refobj.Env[string] `json:"name"`
+		Pass refobj.Env[string] `json:"pass"`
 	}
 	type FeaturesStruct struct {
 		Name         refobj.Env[string]        `json:"name"`
@@ -26,15 +27,16 @@ func TestObjectUnmarshalJSON(t *testing.T) {
 	}
 
 	type TestObject struct {
-		Auths    []AuthStruct     `json:"auths"`
-		Features []FeaturesStruct `json:"features"`
+		Auths    []AuthStruct                   `json:"auths"`
+		Features []FeaturesStruct               `json:"features"`
+		Config   refobj.Object[json.RawMessage] `json:"config"`
 	}
 	const (
 		data = `
 { "auths" : 
   [ { "id"   : "one"
-    , "name" : "joe"
-    , "pass" : "123"
+		, "name" : "${env:USER}"
+		, "pass" : "${env:EUID}"
     }
   , { "id"   : "two"
     , "name" : "boe"
@@ -47,6 +49,7 @@ func TestObjectUnmarshalJSON(t *testing.T) {
     , "display_price": "$.10"
     }
   ]
+, "config" : "${path:features[0]}"
 }
 `
 	)
